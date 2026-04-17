@@ -18,7 +18,7 @@ Application web **mobile-first** dédiée au volleyball, permettant à la fois a
 | Backend | Nuxt server routes / Nitro (API intégrée) |
 | Base de données | Supabase (PostgreSQL + Auth + Storage) |
 | Déploiement | Vercel |
-| Terrain interactif | SVG natif ou Konva.js (Canvas) |
+| Terrain interactif | Konva.js (Canvas) + GSAP (animations) |
 | Stockage vidéos | Supabase Storage (ou embed YouTube en option) |
 | Notifications push | Web Push API via Supabase ou OneSignal |
 
@@ -324,7 +324,107 @@ user_badges
 
 ---
 
-## 10. Conseils & Points de vigilance
+## 10. Format de données — Schémas de terrain
+
+### Structure JSON pour `schema_json`
+
+Utilisé dans les tables `exercises` et `trainings` pour représenter les positions des joueurs sur le terrain.
+
+```json
+{
+  "matchContext": {
+    "set": 1,
+    "serve": "home",
+    "score": {"home": 15, "away": 12},
+    "timestamp": "2026-04-17T14:30:00Z"
+  },
+  "players": [
+    {
+      "id": 1,
+      "team": "home",
+      "number": 12,
+      "role": "P",
+      "x": 80,
+      "y": 60,
+      "label": "Passeur",
+      "status": "active",
+      "direction": 45
+    },
+    {
+      "id": 2,
+      "team": "home",
+      "number": 7,
+      "role": "A",
+      "x": 20,
+      "y": 70,
+      "label": "Réceptionneur 1",
+      "status": "active",
+      "direction": 0
+    },
+    {
+      "id": 3,
+      "team": "home",
+      "number": 4,
+      "role": "B",
+      "x": 50,
+      "y": 85,
+      "label": "Libero",
+      "status": "active",
+      "direction": null
+    }
+  ],
+  "ball": {
+    "x": 50,
+    "y": 20,
+    "velocity": {"x": 2, "y": -3},
+    "height": 2.5
+  },
+  "targets": [
+    {
+      "x": 10,
+      "y": 10,
+      "type": "zone_attaque",
+      "intensity": 0.8
+    }
+  ]
+}
+```
+
+### Spécification des champs
+
+| Champ | Type | Optionnel | Description |
+|-------|------|-----------|-------------|
+| `matchContext.set` | int | Non | Numéro du set (1-5) |
+| `matchContext.serve` | string | Non | Équipe au service ("home" ou "away") |
+| `matchContext.score` | object | Non | Scores actuels `{home: int, away: int}` |
+| `matchContext.timestamp` | ISO 8601 | Oui | Horodatage du schéma |
+| `players[].id` | int | Non | ID unique du joueur |
+| `players[].team` | string | Non | Équipe ("home" ou "away") |
+| `players[].number` | int | Non | Numéro de maillot |
+| `players[].role` | string | Non | Poste : "P" (Passeur), "A" (Attaquant), "B" (Bloc), "L" (Libero), "C" (Central), "R" (Récepteur universel) |
+| `players[].x` | float | Non | Position X sur terrain (0-100, en pourcentage ou unités SVG) |
+| `players[].y` | float | Non | Position Y sur terrain (0-100) |
+| `players[].label` | string | Non | Nom/description du poste |
+| `players[].status` | string | Non | État : "active", "substituted", "injured" |
+| `players[].direction` | float | Oui | Angle de direction en degrés (0-360) — null si sans objet |
+| `ball.x` | float | Non | Position X de la balle |
+| `ball.y` | float | Non | Position Y de la balle |
+| `ball.velocity` | object | Oui | Vélocité `{x: float, y: float}` pour les animations Phase 2 |
+| `ball.height` | float | Oui | Hauteur de la balle en mètres (pour futur rendu 3D) |
+| `targets[].x` | float | Non | Position X de la zone/cible |
+| `targets[].y` | float | Non | Position Y de la zone/cible |
+| `targets[].type` | string | Non | Type de cible : "zone_attaque", "zone_defense", "point_de_chute", etc. |
+| `targets[].intensity` | float | Oui | Intensité/importance (0-1) — pour styliser les priorités |
+
+### Utilisation par Phase
+
+- **Phase 1 (MVP)** : Afficher positions statiques de joueurs + balle. Champs obligatoires : `players`, `ball`.
+- **Phase 2** : Ajouter animations via `velocity` et `direction`. Utiliser `targets` pour les zones d'attaque/défense.
+- **Phase 3+** : Exploiter `height` et `intensity` pour rendu avancé.
+
+---
+
+## 11. Conseils & Points de vigilance
 
 ### Architecture
 - **Trancher les rôles en premier** avant d'écrire une ligne de code — toute la BDD en découle. Le système de rôles contextuels (par club/équipe) est plus complexe à mettre en place mais indispensable pour couvrir les cas réels (joueur/coach en même temps).
