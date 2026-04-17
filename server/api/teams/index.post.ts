@@ -1,4 +1,4 @@
-import { getSupabaseClient, handleDatabaseError } from '../../utils/supabase'
+import { getSupabaseClient, handleDatabaseError, requireAuth } from '../../utils/supabase'
 import { validateTeam } from '../../utils/validation'
 import type { Team, ApiResponse } from '../../../types/models'
 
@@ -7,6 +7,15 @@ import type { Team, ApiResponse } from '../../../types/models'
  */
 export default defineEventHandler(async (event): Promise<ApiResponse<Team>> => {
   try {
+    // Get authenticated user
+    const user = await requireAuth(event)
+    if (!user) {
+      throw createError({
+        status: 401,
+        message: 'Unauthorized: You must be logged in to create a team',
+      })
+    }
+
     const body = await readBody(event)
 
     // Validate input
@@ -26,7 +35,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Team>> => {
         {
           name: body.name,
           description: body.description,
-          coach_id: body.coach_id,
+          coach_id: user.id, // Automatically set to authenticated user
           season: body.season,
           level: body.level,
         },

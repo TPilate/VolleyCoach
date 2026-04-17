@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getHeader, createError } from 'h3'
 
 let supabaseClient: SupabaseClient | null = null
 
@@ -64,4 +65,40 @@ export const handleDatabaseError = (error: any) => {
   }
 
   return new DatabaseError('UNKNOWN_ERROR', error.message || 'An unknown error occurred')
+}
+
+/**
+ * Require authentication - throws 401 if user not authenticated
+ * Extracts JWT from Authorization header and verifies with Supabase
+ * Supabase automatically handles the JWT validation
+ */
+export const requireAuth = async (event: any) => {
+  try {
+    // Get token from Authorization header (format: "Bearer TOKEN")
+    const authHeader = getHeader(event, 'authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    
+    if (!token) {
+      throw new Error('No authorization token provided')
+    }
+
+    const supabase = getSupabaseClient()
+    
+    // Verify JWT token with Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+    
+    if (error || !user) {
+      console.error('Auth error:', error?.message)
+      throw new Error('Invalid or expired token')
+    }
+    
+    return user
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unauthorized'
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Unauthorized',
+      message,
+    })
+  }
 }

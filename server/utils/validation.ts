@@ -18,9 +18,7 @@ export const validateTeam = (data: any, partial = false): ValidationResult => {
       errors.name = ['Team name must be at least 2 characters']
     }
 
-    if (!data.coach_id?.trim()) {
-      errors.coach_id = ['Coach ID is required']
-    }
+    // coach_id is NOT required in request body - it's set from auth.uid() on server
 
     if (!data.season?.trim()) {
       errors.season = ['Season is required']
