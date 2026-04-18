@@ -1,6 +1,19 @@
 // Core Domain Models for VolleyCoach
 
 /**
+ * Generic API Response wrapper
+ */
+export interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  error?: {
+    code: string
+    message: string
+  }
+  message?: string
+}
+
+/**
  * User Profile - Coaches, Players, Admins
  */
 export interface User {

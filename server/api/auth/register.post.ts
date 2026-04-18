@@ -4,7 +4,7 @@ import type { ApiResponse } from '../../../types/models'
 interface RegisterRequest {
   email: string
   password: string
-  fullName?: string
+  fullName: string
 }
 
 interface RegisterResponse {
@@ -18,6 +18,7 @@ interface RegisterResponse {
 /**
  * POST /api/auth/register - Register new user
  * Creates user in Supabase Auth and sets up profile
+ * Step 1 of 3: Profile Setup (Full Name, Email, Password)
  */
 export default defineEventHandler(
   async (event): Promise<ApiResponse<RegisterResponse>> => {
@@ -25,6 +26,14 @@ export default defineEventHandler(
       const body = await readBody<RegisterRequest>(event)
 
       // Validate input
+      if (!body.fullName?.trim()) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Validation Error',
+          message: 'Full name is required',
+        })
+      }
+
       if (!body.email?.trim()) {
         throw createError({
           statusCode: 400,
@@ -33,11 +42,11 @@ export default defineEventHandler(
         })
       }
 
-      if (!body.password || body.password.length < 6) {
+      if (!body.password || body.password.length < 8) {
         throw createError({
           statusCode: 400,
           statusMessage: 'Validation Error',
-          message: 'Password must be at least 6 characters',
+          message: 'Password must be at least 8 characters',
         })
       }
 
